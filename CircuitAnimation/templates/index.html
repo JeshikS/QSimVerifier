@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Circuit Mutation Lab</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00d4ff, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-buttons {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .nav-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 0 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        select, input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        option {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .checkbox-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .source-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .radio-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .radio-item input[type="radio"]:checked + div {
+            color: #00d4ff;
+        }
+
+        .radio-item input[type="radio"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .file-upload-area {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .file-upload-label {
+            display: flex;
+            align-items: center;
+            padding: 30px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .file-upload-label:hover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .file-upload-label .upload-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+
+        .file-upload-label .upload-text {
+            flex: 1;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 212, 255, 0.2);
+            border-radius: 10px;
+            border-left: 4px solid #00d4ff;
+        }
+
+        .file-info h4 {
+            margin: 0 0 10px 0;
+            color: #00d4ff;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .range-value {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.3);
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #00d4ff, #009fff);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: rgba(0, 212, 255, 0.2);
+            border-left: 4px solid #00d4ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .algorithm-info {
+            margin-top: 10px;
+            font-size: 0.9em;
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧬 Quantum Circuit Mutation Lab</h1>
+            <p class="subtitle">Interactive Quantum Circuit Generation & Mutation Analysis</p>
+        </div>
+
+        <div class="nav-buttons">
+            <a href="/sessions" class="nav-btn">📁 Browse Sessions</a>
+            <a href="#" class="nav-btn" onclick="showExamples()">💡 Examples</a>
+            <a href="#" class="nav-btn" onclick="showHelp()">❓ Help</a>
+        </div>
+
+        <form id="circuitForm" method="post" action="/generate-circuit" enctype="multipart/form-data">
+            <div class="form-section">
+                <h3>🔧 Circuit Source</h3>
+                <div class="source-selector">
+                    <label class="radio-item">
+                        <input type="radio" name="source_type" value="algorithm" checked onchange="toggleSource()">
+                        <div>
+                            <strong>🧮 Use Built-in Algorithm</strong><br>
+                            <small>Generate circuit from predefined quantum algorithms</small>
+                        </div>
+                    </label>
+                    
+                    <label class="radio-item">
+                        <input type="radio" name="source_type" value="qasm" onchange="toggleSource()">
+                        <div>
+                            <strong>📄 Upload QASM File</strong><br>
+                            <small>Analyze and fix breaking points in your own quantum circuit</small>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-section" id="algorithm-section">
+                <h3>🔧 Circuit Configuration</h3>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="algorithm">Quantum Algorithm:</label>
+                        <select name="algorithm" id="algorithm" required onchange="updateAlgorithmInfo()">
+                            <option value="">Select an algorithm...</option>
+                            {% for key, name in algorithms.items() %}
+                            <option value="{{ key }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div id="algorithm-info" class="algorithm-info"></div>
+                    </div>
+                    <div class="form-col">
+                        <label for="num_qubits">Number of Qubits:</label>
+                        <input type="number" name="num_qubits" id="num_qubits" min="2" max="10" value="3" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="survival_rate">
+                        Survival Rate: <span class="range-value" id="survival_rate_value">90%</span>
+                    </label>
+                    <input type="range" name="survival_rate" id="survival_rate" min="0" max="1" step="0.1" value="0.9" 
+                           oninput="updateSurvivalRate(this.value)">
+                    <div class="info-box">
+                        <strong>💡 Survival Rate:</strong> Probability that each mutation attempt will be successfully applied to the circuit. 
+                        Higher rates mean more mutations survive, lower rates simulate harsh evolutionary pressure.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="num_mutations">Number of Mutations:</label>
+                    <input type="number" name="num_mutations" id="num_mutations" min="1" max="20" value="5" required>
+                </div>
+            </div>
+
+            <div class="form-section" id="qasm-section" style="display: none;">
+                <h3>📄 QASM File Upload</h3>
+                <div class="file-upload-area">
+                    <input type="file" name="qasm_file" id="qasm_file" accept=".qasm,.txt" onchange="handleFileUpload()">
+                    <label for="qasm_file" class="file-upload-label">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">
+                            <strong>Click to upload QASM file</strong><br>
+                            <small>Supported formats: .qasm, .txt</small>
+                        </div>
+                    </label>
+                    <div id="file-info" class="file-info" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="qasm_survival_rate">
+                        Mutation Survival Rate: <span class="range-value" id="qasm_survival_rate_value">90%</span>
+                    </label>
+                    <input type="range" name="qasm_survival_rate" id="qasm_survival_rate" min="0" max="1" step="0.1" value="0.9" 
+                           oninput="updateQasmSurvivalRate(this.value)">
+                    <div class="info-box">
+                        <strong>🔧 Fix Breaking:</strong> Survival rate for mutations that attempt to fix breaking points in your circuit. 
+                        Higher rates generate more repair mutations, lower rates create minimal fixes.
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="qasm_mutations">Number of Repair Mutations:</label>
+                    <input type="number" name="qasm_mutations" id="qasm_mutations" min="1" max="10" value="3" required>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>🎬 Animation Options</h3>
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="show_creation" checked>
+                        <div>
+                            <strong>🏗️ Show Circuit Creation</strong><br>
+                            <small>Step-by-step visualization of building the initial quantum circuit</small>
+                        </div>
+                    </label>
+
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="show_breaking" checked>
+                        <div>
+                            <strong>💥 Show Circuit Breaking</strong><br>
+                            <small>Visualize where the circuit will be broken for mutation insertion</small>
+                        </div>
+                    </label>
+
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="show_mutations" checked>
+                        <div>
+                            <strong>🧬 Show Mutations</strong><br>
+                            <small>Animate the application of mutations with survival rate simulation</small>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                🚀 Generate Quantum Circuit Animation
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>Generating quantum circuit animations...</p>
+            <p><small>This may take a few moments</small></p>
+        </div>
+    </div>
+
+    <script>
+        function toggleSource() {
+            const sourceType = document.querySelector('input[name="source_type"]:checked').value;
+            const algorithmSection = document.getElementById('algorithm-section');
+            const qasmSection = document.getElementById('qasm-section');
+            
+            if (sourceType === 'algorithm') {
+                algorithmSection.style.display = 'block';
+                qasmSection.style.display = 'none';
+                // Make algorithm fields required
+                document.getElementById('algorithm').required = true;
+                document.getElementById('num_qubits').required = true;
+                // Make QASM fields optional
+                document.getElementById('qasm_file').required = false;
+            } else {
+                algorithmSection.style.display = 'none';
+                qasmSection.style.display = 'block';
+                // Make QASM fields required
+                document.getElementById('qasm_file').required = true;
+                // Make algorithm fields optional
+                document.getElementById('algorithm').required = false;
+                document.getElementById('num_qubits').required = false;
+            }
+        }
+
+        function handleFileUpload() {
+            const fileInput = document.getElementById('qasm_file');
+            const fileInfo = document.getElementById('file-info');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                // Show file information
+                fileInfo.innerHTML = `
+                    <h4>📄 File Selected</h4>
+                    <p><strong>Name:</strong> ${file.name}</p>
+                    <p><strong>Size:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                    <p><strong>Type:</strong> ${file.type || 'text/plain'}</p>
+                    <p><small>🔧 Circuit will be analyzed for breaking points and mutations will be generated to fix them.</small></p>
+                `;
+                fileInfo.style.display = 'block';
+                
+                // Update upload label
+                const uploadText = document.querySelector('.upload-text');
+                uploadText.innerHTML = `
+                    <strong>✅ ${file.name}</strong><br>
+                    <small>Click to change file</small>
+                `;
+            } else {
+                fileInfo.style.display = 'none';
+            }
+        }
+
+        function updateQasmSurvivalRate(value) {
+            document.getElementById('qasm_survival_rate_value').textContent = Math.round(value * 100) + '%';
+        }
+
+        const algorithmDescriptions = {
+            'ae': 'Estimates the amplitude of a marked state in a quantum superposition. Uses controlled rotations and quantum phase estimation.',
+            'grover': 'Searches an unsorted database quadratically faster than classical algorithms. Uses amplitude amplification.',
+            'qft': 'Efficiently computes the discrete Fourier transform on a quantum computer. Foundation for many quantum algorithms.',
+            'vqe': 'Hybrid quantum-classical algorithm for finding ground state energies of molecular systems.',
+            'qaoa': 'Variational algorithm for solving combinatorial optimization problems on near-term quantum devices.'
+        };
+
+        function updateAlgorithmInfo() {
+            const algorithm = document.getElementById('algorithm').value;
+            const infoDiv = document.getElementById('algorithm-info');
+            
+            if (algorithm && algorithmDescriptions[algorithm]) {
+                infoDiv.textContent = algorithmDescriptions[algorithm];
+                infoDiv.style.display = 'block';
+            } else {
+                infoDiv.style.display = 'none';
+            }
+        }
+
+        function updateSurvivalRate(value) {
+            document.getElementById('survival_rate_value').textContent = Math.round(value * 100) + '%';
+        }
+
+        document.getElementById('circuitForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Generating...';
+            loading.style.display = 'block';
+            
+            try {
+                const formData = new FormData(this);
+                
+                const response = await fetch('/generate-circuit', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Redirect to results page
+                    window.location.href = `/session/${result.session_id}`;
+                } else {
+                    alert('Error: ' + result.error);
+                    console.error('Error:', result.error);
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+                console.error('Network error:', error);
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Generate Quantum Circuit Animation';
+                loading.style.display = 'none';
+            }
+        });
+
+        // Initialize
+        updateAlgorithmInfo();
+    </script>
+</body>
+</html>
