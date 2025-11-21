@@ -17,7 +17,85 @@ from quantum_animator import QuantumCircuitAnimator
 QuantumAnimator = QuantumCircuitAnimator
 
 async def analyze_circuit_breaking(circuit, survival_rate):
-    """Analyze quantum circuit for potential breaking points"""
+    """
+    Analyze quantum circuit for potential breaking points using both simple and advanced methods.
+    Now includes comprehensive mathematical formulas for real quantum device physics.
+    """
+    try:
+        # Import the advanced analyzer
+        from quantum_breaking_analysis import QuantumCircuitBreakingAnalyzer, NoiseProfile
+        
+        # Create analyzer with custom noise profile if needed
+        noise_profile = NoiseProfile(
+            T1=100.0,  # 100 μs relaxation time
+            T2=75.0,   # 75 μs dephasing time
+            single_qubit_error=0.001,  # 0.1% single-qubit error
+            cnot_error=0.01,          # 1% CNOT error
+            temperature=0.015,        # 15 mK
+            readout_error=0.02,       # 2% readout error
+            crosstalk_factor=0.05,    # 5% crosstalk
+            frequency_drift=0.001     # 0.1% frequency drift
+        )
+        
+        analyzer = QuantumCircuitBreakingAnalyzer(noise_profile)
+        
+        # Get comprehensive breaking analysis
+        advanced_analysis = analyzer.calculate_comprehensive_breaking_probability(circuit, survival_rate)
+        
+        if not advanced_analysis:
+            # Fallback to simple analysis if advanced fails
+            return await analyze_circuit_breaking_simple(circuit, survival_rate)
+        
+        # Convert advanced analysis to compatible format
+        breaking_points = []
+        for gate_analysis in advanced_analysis:
+            # Convert advanced format to simple format for compatibility
+            gate_info = {
+                'gate_index': gate_analysis['gate_index'],
+                'gate_name': gate_analysis['gate_name'],
+                'qubits': gate_analysis['qubits'],
+                'break_probability': gate_analysis['break_probability'],
+                'severity': gate_analysis['severity'],
+                
+                # Advanced fields
+                'decoherence_factor': gate_analysis.get('decoherence_factor', 0),
+                'crosstalk_factor': gate_analysis.get('crosstalk_factor', 0),
+                'fidelity_loss': gate_analysis.get('fidelity_loss', 0),
+                'environmental_noise': gate_analysis.get('environmental_noise', 0),
+                'gate_time_ns': gate_analysis.get('gate_time_ns', 0),
+                'accumulated_time_us': gate_analysis.get('accumulated_time_us', 0),
+                'mitigation_suggestions': gate_analysis.get('mitigation_suggestions', []),
+                'quantum_volume_impact': gate_analysis.get('quantum_volume_impact', 0)
+            }
+            
+            # Add parameter info for rotation gates
+            if 'angle_degrees' in gate_analysis:
+                gate_info['params'] = gate_analysis.get('params', [])
+                gate_info['angle_degrees'] = gate_analysis['angle_degrees']
+                gate_info['angle_sensitivity'] = gate_analysis.get('angle_sensitivity', 0)
+                gate_info['calibration_error'] = gate_analysis.get('calibration_error', 0)
+            
+            # Add topology info for multi-qubit gates
+            if 'topology_complexity' in gate_analysis:
+                gate_info['topology_complexity'] = gate_analysis['topology_complexity']
+                gate_info['qubit_separation'] = gate_analysis.get('qubit_separation', 0)
+                gate_info['connectivity_cost'] = gate_analysis.get('connectivity_cost', 0)
+            
+            breaking_points.append(gate_info)
+        
+        print(f"🧮 Advanced breaking analysis complete: {len(breaking_points)} gates analyzed")
+        print(f"   Mathematical model: P_break = 1 - P_coherence × P_fidelity × P_crosstalk × P_environment × P_accumulation")
+        
+        return breaking_points
+        
+    except Exception as e:
+        print(f"Error in advanced circuit breaking analysis: {e}")
+        print("Falling back to simple analysis...")
+        return await analyze_circuit_breaking_simple(circuit, survival_rate)
+
+
+async def analyze_circuit_breaking_simple(circuit, survival_rate):
+    """Simple circuit breaking analysis (fallback method)"""
     try:
         breaking_points = []
         
@@ -429,19 +507,8 @@ async def generate_circuit_animations(config):
         os.makedirs(f"{session_dir}/images", exist_ok=True)
         os.makedirs(f"{session_dir}/qasm", exist_ok=True)
         
-        # Generate algorithm-specific circuit
-        if config['algorithm'] == 'ae':
-            initial_circuit = animator.create_amplitude_estimation_circuit(config['num_qubits'])
-        elif config['algorithm'] == 'grover':
-            initial_circuit = animator.create_grover_circuit(config['num_qubits'])
-        elif config['algorithm'] == 'qft':
-            initial_circuit = animator.create_qft_circuit(config['num_qubits'])
-        elif config['algorithm'] == 'vqe':
-            initial_circuit = animator.create_vqe_circuit(config['num_qubits'])
-        elif config['algorithm'] == 'qaoa':
-            initial_circuit = animator.create_qaoa_circuit(config['num_qubits'])
-        else:
-            raise ValueError(f"Unknown algorithm: {config['algorithm']}")
+        # Generate algorithm-specific circuit using the unified method
+        initial_circuit = animator.get_algorithm_circuit(config['algorithm'], config['num_qubits'])
         
         animations = []
         qasm_files = []
@@ -541,7 +608,7 @@ async def generate_circuit_animations(config):
             'slideshow_path': f"outputs/session_{config['session_id']}/slideshow.html",
             'session_dir': session_dir,
             'circuit_info': {
-                'algorithm': ALGORITHMS[config['algorithm']],
+                'algorithm': ALGORITHMS.get(config['algorithm'], config['algorithm'].upper()),
                 'num_qubits': config['num_qubits'],
                 'survival_rate': config['survival_rate'],
                 'num_mutations': config['num_mutations']
@@ -558,18 +625,7 @@ async def generate_creation_animation(circuit, session_dir, config):
     """Generate step-by-step circuit creation animation with consistent scaling"""
     frames = []
     
-    # Start with empty circuit - use reference circuit for consistent scaling
-    empty_circuit = animator.create_empty_circuit(config['num_qubits'])
-    frame_path = f"{session_dir}/images/creation_step_0.png"
-    animator.save_circuit_image_with_consistent_scale(empty_circuit, frame_path, "Empty Circuit", circuit)
-    frames.append({
-        'step': 0,
-        'title': 'Empty Circuit',
-        'image': f"session_{config['session_id']}/images/creation_step_0.png",
-        'description': f"Starting with {config['num_qubits']} qubits"
-    })
-    
-    # Build circuit gate by gate
+    # Build circuit gate by gate (skip empty circuit frame)
     current_circuit = animator.create_empty_circuit(config['num_qubits'])
     
     # Copy classical registers from original circuit to avoid clbit errors
@@ -585,15 +641,63 @@ async def generate_creation_animation(circuit, session_dir, config):
     
     for i, instruction in enumerate(gates):
         try:
-            # Try to append the instruction as-is
-            current_circuit.append(instruction.operation, instruction.qubits, instruction.clbits)
+            # Remap qubits from the source circuit to the current_circuit's qubits
+            # instruction.qubits contains Qubit objects bound to the original circuit; we need
+            # to use the corresponding Qubit objects from current_circuit before appending.
+            # Extract safe indices for each qubit used by the instruction.
+            try:
+                src_qubits = instruction.qubits
+            except Exception:
+                # Older Qiskit tuple form
+                try:
+                    _, src_qubits, _ = instruction
+                except Exception:
+                    src_qubits = []
+
+            qubit_indices = []
+            for q in src_qubits:
+                if hasattr(q, '_index'):
+                    qubit_indices.append(q._index)
+                elif hasattr(q, 'index'):
+                    qubit_indices.append(q.index)
+                else:
+                    # Fallback: try to find the qubit object in the original circuit
+                    try:
+                        qubit_indices.append(circuit.qubits.index(q))
+                    except Exception:
+                        qubit_indices.append(0)
+
+            # Build target qubit objects for the current circuit
+            target_qubits = []
+            try:
+                for idx in qubit_indices:
+                    target_qubits.append(current_circuit.qubits[idx])
+            except Exception:
+                # If mapping fails, fallback to using the original instruction.qubits (best-effort)
+                target_qubits = list(src_qubits)
+
+            # Try appending using remapped qubits; prefer to omit clbits for compatibility
+            try:
+                current_circuit.append(instruction.operation, target_qubits)
+            except Exception:
+                # Last resort: attempt to append with original qubit objects
+                try:
+                    current_circuit.append(instruction.operation, instruction.qubits, instruction.clbits)
+                except Exception as e:
+                    raise e
         except Exception as e:
             # If there are clbit issues, try without clbits (for visualization)
             try:
-                current_circuit.append(instruction.operation, instruction.qubits)
-                print(f"Warning: Skipped clbits for instruction {instruction.operation.name}: {e}")
+                # Try fallback append with remapped qubits if possible
+                if 'target_qubits' in locals() and target_qubits:
+                    current_circuit.append(instruction.operation, target_qubits)
+                else:
+                    current_circuit.append(instruction.operation, instruction.qubits)
+                op_name = getattr(instruction.operation, 'name', str(instruction))
+                print(f"Warning: Skipped clbits for instruction {op_name}: {e}")
             except Exception as e2:
-                print(f"Warning: Could not add instruction {instruction.operation.name}: {e2}")
+                op_name = getattr(instruction.operation, 'name', str(instruction))
+                print(f"Warning: Could not add instruction {op_name}: {e2}")
                 continue
         
         frame_path = f"{session_dir}/images/creation_step_{i+1}.png"
@@ -604,7 +708,7 @@ async def generate_creation_animation(circuit, session_dir, config):
             'step': i + 1,
             'title': f'Added {gate_name.upper()} gate',
             'image': f"session_{config['session_id']}/images/creation_step_{i+1}.png",
-            'description': f"Gate: {gate_name}, Qubits: {[q._index for q in instruction.qubits]}"
+            'description': f"Gate: {gate_name}, Qubits: {qubit_indices}"
         })
     
     return frames
@@ -1037,7 +1141,7 @@ async def generate_html_slideshow(animations, session_dir, config):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Circuit Animation - {ALGORITHMS[config['algorithm']]}</title>
+    <title>Quantum Circuit Animation - {ALGORITHMS.get(config['algorithm'], config['algorithm'].upper())}</title>
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1118,7 +1222,7 @@ async def generate_html_slideshow(animations, session_dir, config):
         <div class="header">
             <h1>🎬 Quantum Circuit Animation</h1>
             <div class="circuit-info">
-                <h3>{ALGORITHMS[config['algorithm']]}</h3>
+                <h3>{ALGORITHMS.get(config['algorithm'], config['algorithm'].upper())}</h3>
                 <p>Qubits: {config['num_qubits']} | Survival Rate: {config['survival_rate']*100}% | Session: {config['session_id']}</p>
             </div>
         </div>
@@ -1219,6 +1323,227 @@ async def generate_html_slideshow(animations, session_dir, config):
         f.write(slideshow_content)
     
     return slideshow_path
+
+@app.post("/advanced-breaking-analysis")
+async def advanced_breaking_analysis(
+    source_type: str = Form(...),
+    algorithm: Optional[str] = Form(None),
+    num_qubits: Optional[int] = Form(None),
+    survival_rate: Optional[float] = Form(0.9),
+    qasm_file: Optional[UploadFile] = File(None),
+    T1_time: Optional[float] = Form(100.0),  # Relaxation time in μs
+    T2_time: Optional[float] = Form(75.0),   # Dephasing time in μs
+    single_qubit_error: Optional[float] = Form(0.001),  # 0.1%
+    cnot_error: Optional[float] = Form(0.01),           # 1%
+    temperature: Optional[float] = Form(0.015),         # 15 mK
+    crosstalk_factor: Optional[float] = Form(0.05)      # 5%
+):
+    """
+    🧮 Advanced Quantum Circuit Breaking Analysis with Mathematical Formulas
+    
+    Uses comprehensive physics-based models including:
+    - Decoherence effects (T1/T2 times)
+    - Gate fidelity models  
+    - Crosstalk effects
+    - Environmental noise
+    - Error accumulation
+    - Parametric gate sensitivity
+    """
+    
+    try:
+        # Import advanced analyzer
+        from quantum_breaking_analysis import QuantumCircuitBreakingAnalyzer, NoiseProfile
+        
+        # Generate unique session ID
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Create custom noise profile from form parameters
+        # These represent real-world quantum device characteristics
+        noise_profile = NoiseProfile(
+            T1=T1_time,                    # Relaxation time (μs) - IBM average: 100μs
+            T2=T2_time,                    # Dephasing time (μs) - IBM average: 75μs  
+            single_qubit_error=single_qubit_error,  # IBM average: 0.1% (0.001)
+            cnot_error=cnot_error,         # CNOT error rate - IBM average: 1% (0.01)
+            temperature=temperature,       # Dilution refrigerator temp (K) - typical: 15mK
+            readout_error=0.02,           # Readout fidelity - typical: 2% error (98% fidelity)
+            crosstalk_factor=crosstalk_factor,  # Neighbor interference - typical: 5%
+            frequency_drift=0.001         # Long-term stability - typical: 0.1% drift
+        )
+        
+        # Initialize animator with custom noise profile
+        session_animator = QuantumCircuitAnimator(session_id=session_id, noise_profile=noise_profile)
+        
+        circuit = None
+        
+        if source_type == "algorithm":
+            # Validate algorithm inputs
+            if not algorithm or algorithm not in ALGORITHMS:
+                raise HTTPException(status_code=400, detail="Invalid algorithm")
+            if not num_qubits or num_qubits < 1 or num_qubits > 20:
+                raise HTTPException(status_code=400, detail="Number of qubits must be between 1 and 20")
+            
+            # Create circuit based on algorithm
+            circuit = session_animator.get_algorithm_circuit(algorithm, num_qubits)
+            circuit_name = f"{algorithm}_{num_qubits}qubits"
+            
+        elif source_type == "qasm":
+            # Handle QASM file upload
+            if not qasm_file or not qasm_file.filename:
+                raise HTTPException(status_code=400, detail="QASM file is required")
+            
+            # Read and process QASM content
+            qasm_content = await qasm_file.read()
+            qasm_content = qasm_content.decode('utf-8')
+            
+            # Parse QASM to create circuit using existing parsing logic
+            # Preprocess QASM content to handle compatibility issues
+            qasm_content = preprocess_qasm_content(qasm_content)
+            
+            # Parse QASM content into quantum circuit
+            circuit = None
+            
+            # Method 1: Try qiskit.qasm2.loads (newer versions) with preprocessed content
+            try:
+                from qiskit.qasm2 import loads
+                circuit = loads(qasm_content)
+                print(f"Successfully loaded QASM using qasm2.loads with preprocessing")
+            except ImportError:
+                print("qasm2.loads not available, trying alternative methods")
+            except Exception as e:
+                print(f"qasm2.loads failed: {e}")
+            
+            # Method 2: Try QuantumCircuit.from_qasm_str (older versions) with preprocessed content
+            if circuit is None:
+                try:
+                    from qiskit import QuantumCircuit
+                    circuit = QuantumCircuit.from_qasm_str(qasm_content)
+                    print(f"Successfully loaded QASM using from_qasm_str with preprocessing")
+                except Exception as e:
+                    print(f"from_qasm_str failed: {e}")
+            
+            # Method 3: Manual parsing fallback
+            if circuit is None:
+                circuit = parse_qasm_manually(qasm_content)
+                print(f"Successfully loaded QASM using manual parser")
+            
+            circuit_name = qasm_file.filename.replace('.qasm', '').replace('.txt', '')
+            
+        if not circuit:
+            raise HTTPException(status_code=400, detail="Failed to create circuit")
+        
+        print(f"🧮 Starting advanced breaking analysis for {circuit_name}")
+        print(f"   Circuit: {circuit.num_qubits} qubits, {len(circuit.data)} gates")
+        print(f"   Noise Profile: T1={T1_time}μs, T2={T2_time}μs, CNOT_error={cnot_error}")
+        
+        # Perform advanced breaking analysis
+        animation_path, breaking_report = await session_animator.animate_advanced_circuit_breaking(
+            circuit, survival_rate, circuit_name
+        )
+        
+        if not animation_path or not breaking_report:
+            raise HTTPException(status_code=500, detail="Advanced analysis failed")
+        
+        # Create session directory for outputs
+        session_dir = f"outputs/session_{session_id}"
+        os.makedirs(session_dir, exist_ok=True)
+        os.makedirs(f"{session_dir}/images", exist_ok=True)
+        os.makedirs(f"{session_dir}/qasm", exist_ok=True)
+        
+        # Generate enhanced slideshow with breaking analysis results
+        config = {
+            'session_id': session_id,
+            'circuit_name': circuit_name,
+            'breaking_report': breaking_report,
+            'noise_profile': {
+                'T1': T1_time,
+                'T2': T2_time,
+                'single_qubit_error': single_qubit_error,
+                'cnot_error': cnot_error,
+                'temperature': temperature,
+                'crosstalk_factor': crosstalk_factor
+            },
+            'advanced_analysis': True,
+            'survival_rate': survival_rate
+        }
+        
+        # Create a simple result dict for slideshow compatibility
+        result = {
+            'algorithm': circuit_name,
+            'num_qubits': circuit.num_qubits,
+            'num_gates': len(circuit.data),
+            'circuit': circuit,
+            'breaking_analysis': breaking_report,
+        }
+        
+        try:
+            slideshow_path = await generate_enhanced_qasm_slideshow(result, session_dir, config)
+            print(f"✅ Slideshow generated: {slideshow_path}")
+        except Exception as e:
+            print(f"⚠️  Slideshow generation failed: {e}")
+            # Create a simple HTML file as fallback
+            slideshow_path = f"{session_dir}/slideshow.html"
+            with open(slideshow_path, 'w') as f:
+                f.write(f"""
+<!DOCTYPE html>
+<html>
+<head><title>Advanced Breaking Analysis - {circuit_name}</title></head>
+<body>
+<h1>🧮 Advanced Breaking Analysis</h1>
+<h2>Circuit: {circuit_name}</h2>
+<p>Qubits: {circuit.num_qubits}, Gates: {len(circuit.data)}</p>
+<p>Analysis complete - check the JSON report for detailed results.</p>
+<p><a href="../breaking_report_{session_id}.json">Download JSON Report</a></p>
+</body>
+</html>
+                """)
+            print(f"✅ Fallback slideshow created: {slideshow_path}")
+        
+        # Create results summary
+        results = {
+            'session_id': session_id,
+            'circuit_name': circuit_name,
+            'source_type': source_type,
+            'circuit_info': {
+                'num_qubits': circuit.num_qubits,
+                'num_gates': len(circuit.data),
+                'depth': circuit.depth(),
+                'execution_time_us': breaking_report['circuit_summary']['estimated_execution_time_us']
+            },
+            'breaking_analysis': breaking_report['breaking_analysis'],
+            'mathematical_model': breaking_report['mathematical_model'],
+            'top_risk_gates': breaking_report['top_risk_gates'][:5],
+            'mitigation_recommendations': breaking_report['mitigation_priority'][:5],
+            'device_recommendations': breaking_report['device_recommendations'],
+            'noise_profile': {
+                'T1_time': T1_time,
+                'T2_time': T2_time,
+                'single_qubit_error': single_qubit_error,
+                'cnot_error': cnot_error,
+                'temperature': temperature,
+                'crosstalk_factor': crosstalk_factor
+            },
+            'files': {
+                'animation': f"session_{session_id}/advanced_breaking_{session_id}.gif",
+                'slideshow': f"session_{session_id}/slideshow.html",
+                'report': f"session_{session_id}/breaking_report_{session_id}.json"
+            }
+        }
+        
+        print(f"✅ Advanced breaking analysis complete!")
+        print(f"   Session ID: {session_id}")
+        print(f"   Critical gates: {breaking_report['breaking_analysis']['critical_gates']}")
+        print(f"   High risk gates: {breaking_report['breaking_analysis']['high_risk_gates']}")
+        print(f"   Average break probability: {breaking_report['breaking_analysis']['average_break_probability']}")
+        
+        return JSONResponse(content=results)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Error in advanced breaking analysis: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.get("/session/{session_id}")
 async def get_session_results(request: Request, session_id: str):

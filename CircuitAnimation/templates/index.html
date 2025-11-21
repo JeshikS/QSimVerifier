@@ -461,6 +461,178 @@
             </button>
         </form>
 
+        <div class="form-section" style="margin-top: 30px; border: 2px solid #00d4ff; background: rgba(0, 212, 255, 0.1);">
+            <h3>🧮 Advanced Breaking Analysis (NEW!)</h3>
+            <p style="margin-bottom: 20px; opacity: 0.9;">
+                Use comprehensive mathematical formulas to analyze quantum circuit breaking points based on real device physics:
+                <strong>P_break = 1 - P_coherence × P_fidelity × P_crosstalk × P_environment × P_accumulation</strong>
+            </p>
+            
+            <form id="advancedForm" method="post" action="/advanced-breaking-analysis" enctype="multipart/form-data">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label class="radio-item">
+                            <input type="radio" name="source_type" value="algorithm" checked onchange="toggleAdvancedSource()">
+                            <div>
+                                <strong>🧮 Algorithm Analysis</strong><br>
+                                <small>Analyze breaking points in quantum algorithms</small>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-col">
+                        <label class="radio-item">
+                            <input type="radio" name="source_type" value="qasm" onchange="toggleAdvancedSource()">
+                            <div>
+                                <strong>📄 QASM Analysis</strong><br>
+                                <small>Upload and analyze your own circuit</small>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="advanced-algorithm-section">
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="adv_algorithm">Algorithm:</label>
+                            <select name="algorithm" id="adv_algorithm" required>
+                                <option value="">Select algorithm...</option>
+                                {% for key, name in algorithms.items() %}
+                                <option value="{{ key }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label for="adv_num_qubits">Qubits:</label>
+                            <input type="number" name="num_qubits" id="adv_num_qubits" min="2" max="10" value="3" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="advanced-qasm-section" style="display: none;">
+                    <div class="file-upload-area">
+                        <input type="file" name="qasm_file" id="adv_qasm_file" accept=".qasm,.txt" onchange="handleAdvancedFileUpload()">
+                        <label for="adv_qasm_file" class="file-upload-label">
+                            <div class="upload-icon">📁</div>
+                            <div class="upload-text">
+                                <strong>Upload QASM for Analysis</strong><br>
+                                <small>Advanced physics-based breaking analysis</small>
+                            </div>
+                        </label>
+                        <div id="adv-file-info" class="file-info" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <div class="form-section" style="background: rgba(255, 255, 255, 0.05);">
+                    <h4>🔬 Quantum Device Parameters</h4>
+                    <p style="font-size: 0.9em; opacity: 0.8; margin-bottom: 20px;">
+                        Configure real quantum device characteristics. Default values represent typical IBM Quantum superconducting devices (2023-2025 era).
+                    </p>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="T1_time">T1 Relaxation Time (μs):</label>
+                            <input type="number" name="T1_time" id="T1_time" min="10" max="1000" step="10" value="100">
+                            <div class="info-box" style="margin-top: 5px; padding: 8px; font-size: 0.8em;">
+                                <strong>T1 (Energy Relaxation):</strong> Time for qubit to decay from |1⟩ to |0⟩ state.
+                                <br><strong>Typical Range:</strong> 50-200μs (IBM: ~100μs, Google: ~80μs, IonQ: ~10s)
+                                <br><strong>Physics:</strong> Longer T1 = better coherence, less decoherence errors
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <label for="T2_time">T2 Dephasing Time (μs):</label>
+                            <input type="number" name="T2_time" id="T2_time" min="10" max="500" step="5" value="75">
+                            <div class="info-box" style="margin-top: 5px; padding: 8px; font-size: 0.8em;">
+                                <strong>T2 (Phase Coherence):</strong> Time for qubit to lose phase information.
+                                <br><strong>Typical Range:</strong> 30-150μs (Always T2 ≤ 2×T1, usually T2 ≈ 0.5-0.8×T1)
+                                <br><strong>Physics:</strong> Includes T1 effects plus pure dephasing from noise
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="single_qubit_error">Single-Qubit Error Rate:</label>
+                            <input type="number" name="single_qubit_error" id="single_qubit_error" min="0.0001" max="0.1" step="0.0001" value="0.001">
+                            <div class="info-box" style="margin-top: 5px; padding: 8px; font-size: 0.8em;">
+                                <strong>Single-Qubit Gate Fidelity:</strong> Error rate for H, X, Y, Z, rotation gates.
+                                <br><strong>Real-World Average:</strong> 0.05-0.2% (IBM: ~0.1%, Google: ~0.15%, IonQ: ~0.01%)
+                                <br><strong>Source:</strong> Calibration errors, control pulse imperfections, decoherence during gate
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <label for="cnot_error">CNOT Error Rate:</label>
+                            <input type="number" name="cnot_error" id="cnot_error" min="0.001" max="0.1" step="0.001" value="0.01">
+                            <div class="info-box" style="margin-top: 5px; padding: 8px; font-size: 0.8em;">
+                                <strong>Two-Qubit Gate Fidelity:</strong> Error rate for CNOT, CZ, controlled gates.
+                                <br><strong>Real-World Average:</strong> 0.5-2% (IBM: ~1%, Google: ~0.6%, IonQ: ~0.2%)
+                                <br><strong>Source:</strong> Crosstalk, longer gate times (~100-500ns), complex control sequences
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="temperature">Temperature (K):</label>
+                            <input type="number" name="temperature" id="temperature" min="0.001" max="1" step="0.001" value="0.015">
+                            <div class="info-box" style="margin-top: 5px; padding: 8px; font-size: 0.8em;">
+                                <strong>Operating Temperature:</strong> Dilution refrigerator base temperature.
+                                <br><strong>Typical Range:</strong> 10-20 mK (IBM/Google: ~15mK, trapped ions: ~1μK)
+                                <br><strong>Physics:</strong> Thermal excitation probability ∝ exp(-ℏω/kT), affects qubit populations
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <label for="crosstalk_factor">Crosstalk Factor:</label>
+                            <input type="number" name="crosstalk_factor" id="crosstalk_factor" min="0.001" max="0.2" step="0.001" value="0.05">
+                            <div class="info-box" style="margin-top: 5px; padding: 8px; font-size: 0.8em;">
+                                <strong>Neighbor Qubit Interference:</strong> Unwanted coupling between adjacent qubits.
+                                <br><strong>Real-World Average:</strong> 2-10% (IBM: ~5%, Google: ~3%, varies by architecture)
+                                <br><strong>Source:</strong> Capacitive/inductive coupling, frequency crowding, control line crosstalk
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-box" style="background: rgba(0, 212, 255, 0.1); border-left: 4px solid #00d4ff; margin-top: 15px;">
+                        <h4 style="margin: 0 0 10px 0; color: #00d4ff;">📊 Device Parameter Ranges</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 0.85em;">
+                            <div>
+                                <strong>🥇 High-End Devices:</strong><br>
+                                T1: 150-300μs<br>
+                                T2: 100-200μs<br>
+                                CNOT: 0.3-0.8%<br>
+                                <em>(Google Sycamore, IBM Condor)</em>
+                            </div>
+                            <div>
+                                <strong>⚖️ Typical NISQ:</strong><br>
+                                T1: 80-150μs<br>
+                                T2: 50-100μs<br>
+                                CNOT: 0.8-2%<br>
+                                <em>(IBM Quantum, Rigetti)</em>
+                            </div>
+                            <div>
+                                <strong>🔬 Research/Early:</strong><br>
+                                T1: 30-80μs<br>
+                                T2: 20-60μs<br>
+                                CNOT: 2-5%<br>
+                                <em>(Academic prototypes)</em>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adv_survival_rate">
+                            Survival Rate: <span class="range-value" id="adv_survival_rate_value">90%</span>
+                        </label>
+                        <input type="range" name="survival_rate" id="adv_survival_rate" min="0" max="1" step="0.1" value="0.9" 
+                               oninput="updateAdvancedSurvivalRate(this.value)">
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" style="background: linear-gradient(45deg, #ff6b35, #f7931e);">
+                    🧮 Advanced Breaking Analysis
+                </button>
+            </form>
+        </div>
+
         <div class="loading" id="loading">
             <div class="loading-spinner"></div>
             <p>Generating quantum circuit animations...</p>
@@ -584,6 +756,86 @@
                 submitBtn.disabled = false;
                 submitBtn.textContent = '🚀 Generate Quantum Circuit Animation';
                 loading.style.display = 'none';
+            }
+        });
+
+        // Advanced form functions
+        function toggleAdvancedSource() {
+            const sourceType = document.querySelector('#advancedForm input[name="source_type"]:checked').value;
+            const algorithmSection = document.getElementById('advanced-algorithm-section');
+            const qasmSection = document.getElementById('advanced-qasm-section');
+            
+            if (sourceType === 'algorithm') {
+                algorithmSection.style.display = 'block';
+                qasmSection.style.display = 'none';
+                document.getElementById('adv_algorithm').required = true;
+                document.getElementById('adv_num_qubits').required = true;
+                document.getElementById('adv_qasm_file').required = false;
+            } else {
+                algorithmSection.style.display = 'none';
+                qasmSection.style.display = 'block';
+                document.getElementById('adv_qasm_file').required = true;
+                document.getElementById('adv_algorithm').required = false;
+                document.getElementById('adv_num_qubits').required = false;
+            }
+        }
+
+        function handleAdvancedFileUpload() {
+            const fileInput = document.getElementById('adv_qasm_file');
+            const fileInfo = document.getElementById('adv-file-info');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                fileInfo.innerHTML = `
+                    <h4>📄 File for Advanced Analysis</h4>
+                    <p><strong>Name:</strong> ${file.name}</p>
+                    <p><strong>Size:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                    <p><small>🧮 Mathematical breaking analysis will be performed using quantum device physics models.</small></p>
+                `;
+                fileInfo.style.display = 'block';
+            } else {
+                fileInfo.style.display = 'none';
+            }
+        }
+
+        function updateAdvancedSurvivalRate(value) {
+            document.getElementById('adv_survival_rate_value').textContent = Math.round(value * 100) + '%';
+        }
+
+        document.getElementById('advancedForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = '🧮 Analyzing...';
+            
+            try {
+                const formData = new FormData(this);
+                
+                const response = await fetch('/advanced-breaking-analysis', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.session_id) {
+                    // Show success message and redirect
+                    alert(`Advanced analysis complete! Session: ${result.session_id}\n\nCritical gates: ${result.breaking_analysis.critical_gates}\nHigh risk gates: ${result.breaking_analysis.high_risk_gates}\nAverage break probability: ${result.breaking_analysis.average_break_probability}`);
+                    window.location.href = `/session/${result.session_id}`;
+                } else {
+                    alert('Error: ' + (result.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+                console.error('Network error:', error);
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
 

@@ -11,6 +11,9 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import os
 from pathlib import Path
 
+# Import the advanced breaking analysis module
+from quantum_breaking_analysis import QuantumCircuitBreakingAnalyzer, NoiseProfile
+
 def canvas_to_numpy(fig):
     """Convert matplotlib canvas to numpy array with compatibility handling"""
     fig.canvas.draw()
@@ -33,13 +36,16 @@ def canvas_to_numpy(fig):
     return frame
 
 class QuantumCircuitAnimator:
-    """Enhanced quantum circuit animator with multiple output formats."""
+    """Enhanced quantum circuit animator with multiple output formats and advanced breaking analysis."""
     
-    def __init__(self, session_id=None, output_dir="outputs"):
+    def __init__(self, session_id=None, output_dir="outputs", noise_profile=None):
         self.session_id = session_id or "default"
         self.output_dir = Path(output_dir) / f"session_{self.session_id}"
         self.images_dir = self.output_dir / "images"
         self.videos_dir = self.output_dir / "videos"
+        
+        # Initialize advanced breaking analyzer
+        self.breaking_analyzer = QuantumCircuitBreakingAnalyzer(noise_profile)
         
         # Create directories
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -47,26 +53,35 @@ class QuantumCircuitAnimator:
         self.videos_dir.mkdir(exist_ok=True)
         
         print(f"QuantumAnimator initialized with output_dir: {self.output_dir}")
+        print(f"🧮 Advanced breaking analysis enabled with mathematical formulas")
         
     def create_ae_circuit(self, n_qubits=2):
-        """Create a realistic Amplitude Estimation circuit."""
+        """Create a realistic Amplitude Estimation circuit that uses all qubits."""
         qc = QuantumCircuit(n_qubits)
         
-        # Amplitude Estimation pattern
-        qc.h(0)  # Initialize superposition
-        if n_qubits > 1:
-            qc.ry(np.pi/4, 1)  # Amplitude rotation
+        # Initialize superposition on all qubits (preparation stage)
+        for i in range(n_qubits):
+            qc.h(i)
         
-        # Oracle operations
-        if n_qubits >= 2:
-            qc.cx(0, 1)  # Entangling gate
-            qc.rz(np.pi/2, 1)  # Phase rotation
-            qc.cx(0, 1)  # Entangling gate
+        # Amplitude rotation gates (A operator)
+        for i in range(n_qubits):
+            qc.ry(np.pi/4 + i * np.pi/8, i)  # Different angles for variety
         
-        # Additional gates
-        qc.z(0)  # Z gate
-        if n_qubits > 1:
-            qc.s(1)  # S gate
+        # Oracle operations (controlled operations to mark target amplitudes)
+        for i in range(n_qubits - 1):
+            qc.cx(i, i + 1)  # Entangling gates
+            qc.rz(np.pi/2, i + 1)  # Phase rotations
+        
+        # Additional amplitude amplification pattern
+        for i in range(n_qubits):
+            if i % 2 == 0:
+                qc.z(i)  # Z gates on even qubits
+            else:
+                qc.s(i)  # S gates on odd qubits
+        
+        # Final entangling layer for amplitude estimation
+        for i in range(n_qubits - 1):
+            qc.cx(i, i + 1)
         
         return qc
     
@@ -114,12 +129,22 @@ class QuantumCircuitAnimator:
             return self.create_grover_circuit(n_qubits)
         elif algorithm in ['qft', 'qftentangled']:
             return self.create_qft_circuit(n_qubits)
+        elif algorithm == 'vqe':
+            return self.create_vqe_circuit(n_qubits)
+        elif algorithm == 'qaoa':
+            return self.create_qaoa_circuit(n_qubits)
         else:
-            # Default circuit
+            # Default circuit - create a simple demo circuit that uses ALL qubits
             qc = QuantumCircuit(n_qubits)
-            qc.h(0)
-            if n_qubits >= 2:
-                qc.cx(0, 1)
+            # Apply Hadamard to all qubits to create superposition
+            for i in range(n_qubits):
+                qc.h(i)
+            # Add entangling gates between adjacent qubits
+            for i in range(n_qubits - 1):
+                qc.cx(i, i + 1)
+            # Add some single qubit rotations to make it interesting
+            for i in range(n_qubits):
+                qc.rz(0.5, i)
             return qc
     
     def render_circuit_high_quality(self, qc, title="", step=0, total_steps=1):
@@ -638,6 +663,254 @@ class QuantumCircuitAnimator:
             traceback.print_exc()
             return None
 
+    async def animate_advanced_circuit_breaking(self, circuit, survival_rate=0.9, filename="advanced_breaking"):
+        """
+        Animate circuit breaking points using advanced mathematical formulas.
+        
+        This method uses comprehensive physics-based models including:
+        - Decoherence effects (T1/T2 times)
+        - Gate fidelity models
+        - Crosstalk effects
+        - Environmental noise
+        - Error accumulation
+        - Parametric gate sensitivity
+        """
+        try:
+            session_id = self.session_id
+            frames = []
+            
+            print(f"🧮 Generating advanced breaking analysis for {circuit.num_qubits}-qubit circuit...")
+            
+            # Get comprehensive breaking analysis
+            breaking_report = self.breaking_analyzer.generate_breaking_report(circuit, survival_rate)
+            
+            if 'error' in breaking_report:
+                print(f"No breaking points found: {breaking_report['error']}")
+                return None
+            
+            # Create summary frame
+            summary_title = f"🧮 Advanced Circuit Breaking Analysis\n"
+            summary_title += f"Mathematical Model: P_break = 1 - ∏(survival_factors)\n"
+            summary_title += f"Gates: {breaking_report['circuit_summary']['total_gates']}, "
+            summary_title += f"Qubits: {breaking_report['circuit_summary']['num_qubits']}\n"
+            summary_title += f"Critical: {breaking_report['breaking_analysis']['critical_gates']}, "
+            summary_title += f"High Risk: {breaking_report['breaking_analysis']['high_risk_gates']}\n"
+            summary_title += f"Avg Break Prob: {breaking_report['breaking_analysis']['average_break_probability']:.3f}"
+            
+            summary_frame = self.draw_circuit_with_style(circuit, title=summary_title, title_color='darkblue')
+            frames.append(summary_frame)
+            
+            # Get top risk gates for detailed analysis
+            top_risk_gates = breaking_report['top_risk_gates']
+            
+            for i, gate_analysis in enumerate(top_risk_gates[:10]):  # Show top 10 risk gates
+                gate_idx = gate_analysis['gate_index']
+                gate_name = gate_analysis['gate_name']
+                break_prob = gate_analysis['break_probability']
+                severity = gate_analysis['severity']
+                
+                # Create detailed analysis title
+                title = f"🎯 Gate #{gate_idx+1}: {gate_name.upper()} ({severity.upper()} RISK)\n"
+                title += f"Break Probability: {break_prob:.4f} ({break_prob*100:.2f}%)\n"
+                
+                # Add physics-based factors
+                title += f"📊 Breaking Factors:\n"
+                title += f"• Decoherence: {gate_analysis['decoherence_factor']:.3f} "
+                title += f"• Crosstalk: {gate_analysis['crosstalk_factor']:.3f}\n"
+                title += f"• Fidelity Loss: {gate_analysis['fidelity_loss']:.3f} "
+                title += f"• Environment: {gate_analysis['environmental_noise']:.3f}\n"
+                title += f"⏱️ Gate Time: {gate_analysis['gate_time_ns']}ns, "
+                title += f"Total Time: {gate_analysis['accumulated_time_us']:.1f}μs\n"
+                
+                # Add parametric information if available
+                if 'angle_degrees' in gate_analysis:
+                    title += f"🔄 Rotation: {gate_analysis['angle_degrees']:.1f}° "
+                    title += f"(Sensitivity: {gate_analysis.get('angle_sensitivity', 0):.3f})\n"
+                
+                # Add topology information for multi-qubit gates
+                if 'topology_complexity' in gate_analysis:
+                    title += f"🔗 Topology: {gate_analysis['topology_complexity']} qubits, "
+                    title += f"Separation: {gate_analysis.get('qubit_separation', 0)}\n"
+                
+                # Add primary mitigation suggestion
+                if gate_analysis['mitigation_suggestions']:
+                    title += f"💡 Mitigation: {gate_analysis['mitigation_suggestions'][0]}"
+                
+                # Color code by severity
+                severity_colors = {
+                    'critical': 'darkred',
+                    'high': 'red', 
+                    'medium': 'orange',
+                    'low': 'goldenrod',
+                    'minimal': 'green'
+                }
+                color = severity_colors.get(severity, 'black')
+                
+                # Create highlighted circuit
+                highlighted_circuit = self.create_highlighted_circuit(circuit, gate_idx, severity)
+                frame = self.draw_circuit_with_style(highlighted_circuit, title=title, title_color=color)
+                frames.append(frame)
+            
+            # Create mitigation recommendations frame
+            mitigation_title = f"🛠️ Circuit Mitigation Recommendations\n"
+            mitigation_title += f"Execution Strategy: {breaking_report['device_recommendations']['execution_strategy']}\n"
+            mitigation_title += f"📋 Priority Actions:\n"
+            
+            for i, priority in enumerate(breaking_report['mitigation_priority'][:3]):
+                mitigation_title += f"{i+1}. Gate {priority['gate_index']+1} ({priority['gate_name']}): "
+                mitigation_title += f"{priority['recommended_action']}\n"
+            
+            mitigation_title += f"🔧 Recommended Techniques:\n"
+            techniques = breaking_report['device_recommendations']['error_mitigation'][:3]
+            for technique in techniques:
+                mitigation_title += f"• {technique}\n"
+            
+            mitigation_frame = self.draw_circuit_with_style(circuit, title=mitigation_title, title_color='darkgreen')
+            frames.append(mitigation_frame)
+            
+            # Create mathematical model explanation frame
+            math_title = f"🧮 Mathematical Breaking Model\n"
+            math_title += f"Formula Components:\n"
+            for component, description in breaking_report['mathematical_model']['components'].items():
+                math_title += f"• {component}: {description}\n"
+            
+            math_frame = self.draw_circuit_with_style(circuit, title=math_title, title_color='darkblue')
+            frames.append(math_frame)
+            
+            # Save animation
+            output_path = self.output_dir / f"advanced_breaking_{session_id}.gif"
+            self.save_animation(frames, output_path, duration=3000)  # Slower for detailed analysis
+            
+            # Save individual frames for controls
+            await self.save_individual_frames(frames, "advanced_breaking", session_id)
+            
+            # Save QASM files for slideshow links
+            await self.save_qasm_files_for_slideshow(circuit, breaking_report, session_id)
+            
+            # Save comprehensive report as JSON to the correct session directory
+            from pathlib import Path as PathLib
+            base_output_dir = PathLib("/home/jeshik_1/jeshik/QSimVerifier/CircuitAnimation/outputs")
+            session_dir = base_output_dir / f"session_{session_id}"
+            session_dir.mkdir(parents=True, exist_ok=True)
+            report_path = session_dir / f"breaking_report_{session_id}.json"
+            with open(report_path, 'w') as f:
+                import json
+                json.dump(breaking_report, f, indent=2)
+            
+            print(f"✅ Advanced breaking analysis complete!")
+            print(f"   Animation: {output_path.name}")
+            print(f"   Report: {report_path.name}")
+            print(f"   Critical gates: {breaking_report['breaking_analysis']['critical_gates']}")
+            print(f"   Max break probability: {breaking_report['breaking_analysis']['max_break_probability']}")
+            
+            return output_path, breaking_report
+            
+        except Exception as e:
+            print(f"Error creating advanced breaking animation: {e}")
+            import traceback
+            traceback.print_exc()
+            return None, None
+
+    async def save_qasm_files_for_slideshow(self, circuit, breaking_report, session_id):
+        """Save QASM files for slideshow integration"""
+        try:
+            # Create qasm directory for this session (use correct path structure)
+            from pathlib import Path as PathLib
+            base_output_dir = PathLib("/home/jeshik_1/jeshik/QSimVerifier/CircuitAnimation/outputs")
+            qasm_dir = base_output_dir / f"session_{session_id}" / "qasm"
+            qasm_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Import qasm2 for QASM export
+            from qiskit import qasm2
+            
+            # Save initial circuit
+            initial_path = qasm_dir / "initial_circuit.qasm"
+            with open(initial_path, 'w') as f:
+                f.write(qasm2.dumps(circuit))
+            
+            # Create a "broken" circuit (same as original but with comments about breaking points)
+            broken_circuit = circuit.copy()
+            broken_qasm = qasm2.dumps(circuit)
+            
+            # Add comments about breaking points
+            broken_qasm_with_comments = f"// Circuit Breaking Analysis\n"
+            broken_qasm_with_comments += f"// Critical gates: {breaking_report['breaking_analysis']['critical_gates']}\n"
+            broken_qasm_with_comments += f"// Max break probability: {breaking_report['breaking_analysis']['max_break_probability']:.4f}\n"
+            broken_qasm_with_comments += broken_qasm
+            
+            broken_path = qasm_dir / "broken_circuit.qasm"
+            with open(broken_path, 'w') as f:
+                f.write(broken_qasm_with_comments)
+            
+            # Generate mutated circuits based on top risk gates
+            top_risk_gates = breaking_report.get('top_risk_gates', [])[:3]  # Top 3 mutations
+            
+            for i, gate_analysis in enumerate(top_risk_gates):
+                mutated_circuit = self.create_mutated_circuit_for_qasm(circuit, gate_analysis, i)
+                mutated_qasm = qasm2.dumps(mutated_circuit)
+                
+                # Add mutation comments
+                mutation_comment = f"// Mutation #{i+1} for Gate {gate_analysis['gate_index']+1}\n"
+                mutation_comment += f"// Original gate: {gate_analysis['gate_name']} (risk: {gate_analysis['break_probability']:.4f})\n"
+                mutation_comment += f"// Mitigation: {gate_analysis.get('mitigation_suggestions', ['Standard optimization'])[0]}\n"
+                mutated_qasm_with_comments = mutation_comment + mutated_qasm
+                
+                mutation_path = qasm_dir / f"mutated_circuit_{i+1}.qasm"
+                with open(mutation_path, 'w') as f:
+                    f.write(mutated_qasm_with_comments)
+            
+            print(f"✅ QASM files saved to {qasm_dir}")
+            
+        except Exception as e:
+            print(f"Error saving QASM files: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def create_mutated_circuit_for_qasm(self, circuit, gate_analysis, mutation_index):
+        """Create a mutated version of the circuit for QASM export"""
+        try:
+            mutated_circuit = circuit.copy()
+            gate_idx = gate_analysis['gate_index']
+            gate_name = gate_analysis['gate_name']
+            
+            # Apply simple mutations based on gate type
+            if gate_name in ['ry', 'rz', 'rx'] and len(circuit.data) > gate_idx:
+                # For rotation gates, reduce the angle slightly
+                original_gate = circuit.data[gate_idx]
+                if hasattr(original_gate, 'operation') and hasattr(original_gate.operation, 'params'):
+                    params = original_gate.operation.params
+                    if params:
+                        # Create new circuit and replace the gate
+                        new_circuit = QuantumCircuit(circuit.num_qubits, circuit.num_clbits)
+                        
+                        # Copy all gates except the target gate
+                        for i, gate_data in enumerate(circuit.data):
+                            if i == gate_idx and gate_name in ['ry', 'rz', 'rx']:
+                                # Apply mutation: reduce angle by 10-20%
+                                reduction_factor = 0.8 + (mutation_index * 0.05)
+                                new_angle = params[0] * reduction_factor
+                                
+                                # Add mutated gate
+                                qubits = [circuit.qubits.index(q) for q in gate_data.qubits]
+                                if gate_name == 'ry':
+                                    new_circuit.ry(new_angle, qubits[0])
+                                elif gate_name == 'rz':
+                                    new_circuit.rz(new_angle, qubits[0])
+                                elif gate_name == 'rx':
+                                    new_circuit.rx(new_angle, qubits[0])
+                            else:
+                                # Copy original gate
+                                new_circuit.append(gate_data.operation, gate_data.qubits, gate_data.clbits)
+                        
+                        return new_circuit
+            
+            # For other gates or if mutation fails, return original with a note
+            return mutated_circuit
+            
+        except Exception as e:
+            print(f"Error creating mutated circuit: {e}")
+            return circuit.copy()
+
     async def animate_qasm_mutations(self, circuit, breaking_analysis, filename, num_mutations):
         """Animate mutations to fix QASM circuit breaking points"""
         try:
@@ -732,10 +1005,13 @@ class QuantumCircuitAnimator:
                 
             # Default style configuration for better readability
             default_style = {
-                'fontsize': 8,  # Smaller font to prevent overcrowding
+                'fontsize': 10,  # Readable font size for gate labels
+                'subfontsize': 8,  # Readable font size for subscripts
                 'compress': True,  # Compress the circuit layout
-                'margin': [0.1, 0.1, 0.1, 0.1],  # Reduce margins
-                'wire_order': 'default'  # Keep natural qubit ordering
+                'margin': [0.2, 0.2, 0.2, 0.2],  # Adequate margins for readability
+                'wire_order': 'default',  # Keep natural qubit ordering
+                'gatefacecolor': '#ffffff',  # White gate backgrounds
+                'backgroundcolor': '#ffffff'  # White overall background
             }
             
             if style_config:
@@ -746,23 +1022,23 @@ class QuantumCircuitAnimator:
             num_gates = len(circuit.data) if hasattr(circuit, 'data') else 0
             
             # Improved font scaling logic that considers both qubits and gates
-            # Make fonts much smaller across the board to prevent overlap
+            # Use readable font sizes for better gate label visibility
             if num_qubits > 8 and num_gates > 30:
-                default_style['fontsize'] = 1  # Ultra small for large complex circuits
-                fig_width = max(20, num_qubits * 3)  # More width for readability
-                fig_height = max(12, num_qubits * 1.2)  # Controlled height
+                default_style['fontsize'] = 8  # Readable for large complex circuits
+                fig_width = max(24, num_qubits * 3.5)  # More width for readability
+                fig_height = max(14, num_qubits * 1.4)  # Controlled height
             elif num_qubits > 5 and num_gates > 15:
-                default_style['fontsize'] = 2  # Very small for medium circuits
-                fig_width = 16
-                fig_height = 10
-            elif num_gates < 10:  # Simple circuits with few gates (increased threshold)
-                default_style['fontsize'] = 2  # Very small font for simple circuits to prevent overlap
-                fig_width = 10  # Smaller width for simple circuits
-                fig_height = max(5, num_qubits * 0.5)  # Tighter height
+                default_style['fontsize'] = 10  # Medium readable for medium circuits
+                fig_width = 18
+                fig_height = 12
+            elif num_gates < 10:  # Simple circuits with few gates
+                default_style['fontsize'] = 12  # Large readable font for simple circuits
+                fig_width = 12  # Good width for simple circuits
+                fig_height = max(6, num_qubits * 0.8)  # Adequate height
             else:
-                default_style['fontsize'] = 2  # Very small for regular circuits
-                fig_width = 12
-                fig_height = max(6, num_qubits * 0.6)
+                default_style['fontsize'] = 10  # Good readable size for regular circuits
+                fig_width = 16
+                fig_height = max(8, num_qubits * 0.8)
             
             # Create figure with proper size
             fig, ax = plt.subplots(figsize=(fig_width, fig_height))
@@ -772,12 +1048,16 @@ class QuantumCircuitAnimator:
             
             # Draw the circuit with improved styling
             if len(circuit.data) > 0:
-                # Use a more compact style for large circuits
+                # Use readable style with larger fonts for gate labels
                 style_dict = {
                     'fontsize': default_style['fontsize'],
-                    'compress': True if num_qubits > 5 else False,
-                    'lwidth': 0.5 if num_qubits > 8 else 1.0,  # Thinner lines for large circuits
-                    'cwidth': 0.5 if num_qubits > 8 else 1.0   # Thinner control lines
+                    'subfontsize': default_style['fontsize'] - 2,  # Slightly smaller for subscripts but still readable
+                    'compress': True if num_qubits > 6 else False,
+                    'lwidth': 1.0 if num_qubits > 8 else 1.5,  # Adequate line width for visibility
+                    'cwidth': 1.0 if num_qubits > 8 else 1.5,  # Adequate control line width
+                    'gatefacecolor': '#ffffff',  # White background for gates for better contrast
+                    'barrierfacecolor': '#cccccc',  # Light gray for barriers
+                    'backgroundcolor': '#ffffff'  # White background for better readability
                 }
                 
                 # Fix qubit ordering for large circuits
@@ -838,13 +1118,13 @@ class QuantumCircuitAnimator:
             if title:
                 # Clean title to avoid color parsing issues
                 clean_title = title.replace("'", "").replace('"', '')
-                # Scale title font size based on circuit complexity - very small fonts
+                # Scale title font size based on circuit complexity - readable fonts
                 if num_qubits > 8 and num_gates > 30:
-                    title_fontsize = 2  # Very small for large circuits
+                    title_fontsize = 10  # Readable for large circuits
                 elif num_gates < 10:  # Simple circuits
-                    title_fontsize = 3  # Small for simple circuits
+                    title_fontsize = 14  # Large readable for simple circuits
                 else:
-                    title_fontsize = 3  # Consistent small sizing
+                    title_fontsize = 12  # Good readable sizing
                 ax.set_title(clean_title, color=title_color, fontsize=title_fontsize, pad=4)
             
             # Adjust layout for better fit
