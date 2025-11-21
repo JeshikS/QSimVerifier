@@ -14,20 +14,33 @@ async def generate_enhanced_qasm_slideshow(result, session_dir, config):
         mutation_frames = []
         
         if images_dir.exists():
-            # Sort frames numerically by extracting the step number
-            creation_frames = sorted([f for f in images_dir.glob("creation_step_*.png")], 
+            # Check if this is advanced breaking analysis
+            advanced_frames = sorted([f for f in images_dir.glob("advanced_breaking_step_*.png")], 
                                    key=lambda x: int(x.stem.split('_')[-1]))
-            breaking_frames = sorted([f for f in images_dir.glob("breaking_step_*.png")], 
-                                   key=lambda x: int(x.stem.split('_')[-1]))
-            mutation_frames = sorted([f for f in images_dir.glob("mutation_step_*.png")], 
-                                   key=lambda x: int(x.stem.split('_')[-1]))
+            
+            if advanced_frames:
+                # Use advanced breaking frames
+                creation_frames = advanced_frames  # Show as creation section
+                breaking_frames = []
+                mutation_frames = []
+            else:
+                # Sort frames numerically by extracting the step number
+                creation_frames = sorted([f for f in images_dir.glob("creation_step_*.png")], 
+                                       key=lambda x: int(x.stem.split('_')[-1]))
+                breaking_frames = sorted([f for f in images_dir.glob("breaking_step_*.png")], 
+                                       key=lambda x: int(x.stem.split('_')[-1]))
+                mutation_frames = sorted([f for f in images_dir.glob("mutation_step_*.png")], 
+                                       key=lambda x: int(x.stem.split('_')[-1]))
+        
+        # Get circuit name from result or config
+        circuit_name = result.get('algorithm', config.get('circuit_name', 'Unknown Circuit'))
         
         # Generate the HTML content
         slideshow_content = f"""
 <!DOCTYPE html>
 <html>
 <head>
-    <title>QASM Circuit Analysis - {result['filename']}</title>
+    <title>QASM Circuit Analysis - {circuit_name}</title>
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -199,14 +212,14 @@ async def generate_enhanced_qasm_slideshow(result, session_dir, config):
     <div class="container">
         <div class="header">
             <h1>🚀 QASM Circuit Analysis Results</h1>
-            <h2>{result['filename']}</h2>
+            <h2>{circuit_name}</h2>
             <div class="stats">
                 <div class="stat-box">
-                    <h4>{result['num_qubits']}</h4>
+                    <h4>{result.get('circuit_summary', {}).get('num_qubits', result.get('num_qubits', 'N/A'))}</h4>
                     <p>Qubits</p>
                 </div>
                 <div class="stat-box">
-                    <h4>{result['num_gates']}</h4>
+                    <h4>{result.get('circuit_summary', {}).get('total_gates', result.get('num_gates', 'N/A'))}</h4>
                     <p>Gates</p>
                 </div>
                 <div class="stat-box">
@@ -234,13 +247,23 @@ async def generate_enhanced_qasm_slideshow(result, session_dir, config):
 
         # Add creation animation section
         section_count = 0
+        is_advanced_analysis = config.get('advanced_analysis', False)
+        
         if creation_frames:
             section_count += 1
             frame_paths = [f"/outputs/session_{config['session_id']}/images/{f.name}" for f in creation_frames]
+            
+            if is_advanced_analysis:
+                section_title = "🧮 Advanced Breaking Analysis"
+                section_description = "Mathematical analysis of quantum circuit breaking points using real device physics."
+            else:
+                section_title = "🔧 Circuit Creation Animation"
+                section_description = "Step-by-step visualization of the QASM circuit construction process."
+                
             slideshow_content += f"""
         <div class="animation-section active" id="section1">
-            <h3>🔧 Circuit Creation Animation</h3>
-            <p>Step-by-step visualization of the QASM circuit construction process.</p>
+            <h3>{section_title}</h3>
+            <p>{section_description}</p>
             
             <div class="frame-viewer">
                 <img id="creationFrame" src="{frame_paths[0] if frame_paths else ''}" alt="Circuit Creation Frame" class="frame-image">
